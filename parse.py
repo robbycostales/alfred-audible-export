@@ -4,6 +4,9 @@ from dataclasses import dataclass
 from typing import List, Optional
 import logging
 from datetime import datetime
+import sys
+import subprocess
+from typing import List
 
 @dataclass
 class Chapter:
@@ -197,3 +200,53 @@ class AudibleParser:
             output.append(line)
         
         return "".join(output)
+
+
+def get_recent_clipboard_items(n: int = 3) -> List[str]:
+    """Get the n most recent clipboard items from Alfred's clipboard history"""
+    try:
+        # Get clipboard items from Alfred's clipboard history
+        # Assumes items were copied in order: url, chapters, bookmarks
+        cmd = ['osascript', '-e', 
+               'tell application "Alfred 5" to clipboard history']
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        # Split into lines and take the n most recent items
+        items = result.stdout.strip().split('\n')[:n]
+        
+        # Return items in the order needed by the parser
+        # (bookmarks, chapters, url)
+        return items
+        
+    except Exception as e:
+        print(f"Error getting clipboard items: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def main():
+    # Get the 3 most recent clipboard items
+    clipboard_items = get_recent_clipboard_items(3)
+    
+    if len(clipboard_items) != 3:
+        print("Error: Need 3 clipboard items (url, chapters, bookmarks)", 
+              file=sys.stderr)
+        sys.exit(1)
+    
+    # Call the parser script with clipboard items
+    try:
+        cmd = ['python3', 'parse.py'] + clipboard_items
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            print(f"Parser error: {result.stderr}", file=sys.stderr)
+            sys.exit(1)
+            
+        # Output the formatted markdown
+        print(result.stdout)
+        
+    except Exception as e:
+        print(f"Error running parser: {e}", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
