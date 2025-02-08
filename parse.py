@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from typing import List, Optional
-import sys
 import logging
 from datetime import datetime
 
@@ -44,7 +43,7 @@ class AudibleParser:
         """Convert time string (HH:MM:SS or MM:SS) to seconds"""
         parts = time_str.strip().split(":")
         if len(parts) == 2:  # MM:SS format
-            parts.insert(0, "0")  # Add 0 hours
+            return int(parts[0]) * 60 + int(parts[1])
         return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
 
     def parse_chapters(self, chapter_text: str) -> List[Chapter]:
@@ -55,40 +54,40 @@ class AudibleParser:
         lines = [line.strip() for line in chapter_text.strip().split("\n") if line.strip()]
         i = 0
         while i < len(lines):
-            current_line = lines[i]
-            next_line = lines[i + 1] if i + 1 < len(lines) else None
-            
-            # If next line contains time format (MM:SS or HH:MM:SS)
-            if next_line and any(next_line.count(":") == count for count in [1, 2]):
-                name = current_line
-                time_str = next_line
-                
-                # Convert MM:SS to HH:MM:SS if needed
-                if time_str.count(":") == 1:
-                    time_str = "00:" + time_str
-                    
-                duration = self.time_to_seconds(time_str)
-                chapter = Chapter(
-                    name=name,
-                    duration_seconds=duration,
-                    start_time=cumulative_time
-                )
-                chapters.append(chapter)
-                cumulative_time += duration
-                i += 2  # Skip the time line
-            else:
+            # Skip empty lines
+            if not lines[i]:
                 i += 1
+                continue
                 
-            duration = self.time_to_seconds(time_str)
-            chapter = Chapter(
-                name=name,
-                duration_seconds=duration,
-                start_time=cumulative_time
-            )
-            chapters.append(chapter)
-            cumulative_time += duration
+            # Get chapter name
+            name = lines[i]
+            i += 1
+            
+            # Get duration if next line exists
+            if i < len(lines):
+                try:
+                    duration = self.time_to_seconds(lines[i])
+                    chapter = Chapter(
+                        name=name,
+                        duration_seconds=duration,
+                        start_time=cumulative_time
+                    )
+                    chapters.append(chapter)
+                    cumulative_time += duration
+                    i += 1
+                except (ValueError, IndexError):
+                    # If we can't parse the time, assume it's another chapter name
+                    continue
             
         return chapters
+
+    def find_chapter_for_timestamp(self, timestamp_seconds: int, chapters: List[Chapter]) -> tuple[int, Chapter]:
+        """Find which chapter a timestamp belongs to based on cumulative time"""
+        for idx, chapter in enumerate(chapters):
+            chapter_end = chapter.start_time + chapter.duration_seconds
+            if chapter.start_time <= timestamp_seconds < chapter_end:
+                return idx, chapter
+        return -1, None
 
     def parse_bookmarks(self, bookmark_text: str, chapters: List[Chapter]) -> List[Bookmark]:
         """Parse bookmark information from text format"""
@@ -97,15 +96,13 @@ class AudibleParser:
         i = 0
         
         while i < len(lines):
-            if i >= len(lines):
-                break
-                
-            loc_line = lines[i]
-            if "[Go to bookmark]" in loc_line:
-                i += 1
-                continue
-                
             try:
+                # Parse bookmark line
+                loc_line = lines[i]
+                if "[Go to bookmark]" in loc_line:
+                    i += 1
+                    continue
+                    
                 # Split on last occurrence of " / " in case chapter name contains " / "
                 if " / " not in loc_line:
                     i += 1
@@ -116,35 +113,31 @@ class AudibleParser:
                     i += 1
                     continue
                     
-                chapter_name, timestamp = chapter_parts
-                chapter_name = chapter_name.strip()
+                input_chapter_name, timestamp = chapter_parts
                 timestamp = timestamp.strip()
                 
-                # Find chapter index
-                chapter_index = next(
-                    (idx for idx, ch in enumerate(chapters) if ch.name == chapter_name),
-                    -1
-                )
+                # Convert timestamp to seconds
+                position_seconds = self.time_to_seconds(timestamp)
+                
+                # Find which chapter this timestamp belongs to
+                chapter_index, chapter = self.find_chapter_for_timestamp(position_seconds, chapters)
                 if chapter_index == -1:
-                    logging.warning(f"Chapter not found: {chapter_name}")
+                    logging.warning(f"Could not find chapter for timestamp {timestamp}")
                     i += 1
                     continue
                 
-                # Parse timestamp
-                position_seconds = self.time_to_seconds(timestamp)
-                
                 # Calculate percentage through chapter
-                chapter = chapters[chapter_index]
-                percentage = ((position_seconds - chapter.start_time) / 
-                            chapter.duration_seconds * 100)
+                chapter_relative_position = position_seconds - chapter.start_time
+                percentage = (chapter_relative_position / chapter.duration_seconds) * 100
                 
-                # Parse date line
+                # Parse date/time
                 i += 1
                 if i >= len(lines):
                     break
-                date_line = lines[i]
+                date_line = lines[i].strip()
                 date_parts = date_line.split(" | ")
                 if len(date_parts) != 2:
+                    i += 1
                     continue
                 date, time = date_parts
                 
@@ -157,11 +150,11 @@ class AudibleParser:
                     note = "(blank)"
                     i += 1
                 else:
-                    note = note.strip(" \"")  # Remove quotes and extra spaces
+                    note = note.strip(" \"")
                     i += 2
                 
                 bookmark = Bookmark(
-                    chapter_name=chapter_name,
+                    chapter_name=chapter.name,
                     chapter_index=chapter_index,
                     timestamp=timestamp,
                     position_seconds=position_seconds,
@@ -170,13 +163,17 @@ class AudibleParser:
                     time=time,
                     note=note
                 )
+                
+                logging.debug(f"Time {timestamp} ({position_seconds}s) assigned to chapter {chapter.name} " +
+                            f"(starts at {chapter.start_time}s, duration {chapter.duration_seconds}s)")
+                
                 bookmarks.append(bookmark)
                 
             except Exception as e:
                 logging.error(f"Error parsing bookmark at line {i}: {e}")
                 i += 1
         
-        return list(reversed(bookmarks))  # Reverse to match original order
+        return sorted(bookmarks, key=lambda x: x.position_seconds)
 
     def format_output(self, bookmarks: List[Bookmark], base_link: str) -> str:
         """Format bookmarks into Markdown with chapter headers and links"""
@@ -189,38 +186,14 @@ class AudibleParser:
                 output.append(f"\n\n#### {bookmark.chapter_name}")
                 current_chapter = bookmark.chapter_name
             
-            # Create link with position and chapter index
+            # Create link with position
             link = (f"{base_link.split('&bookmarkPos')[0]}"
                    f"&bookmarkPos={bookmark.position_seconds * 1000}"
                    f"&chapterIndex={bookmark.chapter_index}#")
             
-            # Format bookmark line with timestamp, percentage, and note
+            # Format bookmark line
             line = (f"\n- [{bookmark.timestamp} {int(bookmark.percentage)}%]({link}) - "
                    f"{bookmark.note}")
             output.append(line)
         
         return "".join(output)
-
-def main():
-    """Main entry point for the script"""
-    if len(sys.argv) != 2:
-        print("Usage: parse.py 'chapters_text xx\\n bookmarks_text xx\\n base_link'", 
-              file=sys.stderr)
-        sys.exit(1)
-
-    # Parse input from Alfred (3 parts separated by xx\n)
-    chapters_text, bookmarks_text, base_link = sys.argv[1].split("xx\n")
-    
-    # Initialize parser with debug logging
-    parser = AudibleParser(debug=True)
-    
-    # Process the data
-    chapters = parser.parse_chapters(chapters_text)
-    bookmarks = parser.parse_bookmarks(bookmarks_text, chapters)
-    output = parser.format_output(bookmarks, base_link)
-    
-    # Write formatted output to stdout (will be captured by Alfred)
-    sys.stdout.write(output)
-
-if __name__ == "__main__":
-    main()
