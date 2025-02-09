@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
 from dataclasses import dataclass
-from typing import List, Optional
-import logging
-from datetime import datetime
-import sys
-import subprocess
 from typing import List
+import sys
+import logging
+import json
+import os
 
 @dataclass
 class Chapter:
@@ -201,51 +200,65 @@ class AudibleParser:
         
         return "".join(output)
 
-
-def get_recent_clipboard_items(n: int = 3) -> List[str]:
-    """Get the n most recent clipboard items from Alfred's clipboard history"""
-    try:
-        # Get clipboard items from Alfred's clipboard history
-        # Assumes items were copied in order: url, chapters, bookmarks
-        cmd = ['osascript', '-e', 
-               'tell application "Alfred 5" to clipboard history']
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        
-        # Split into lines and take the n most recent items
-        items = result.stdout.strip().split('\n')[:n]
-        
-        # Return items in the order needed by the parser
-        # (bookmarks, chapters, url)
-        return items
-        
-    except Exception as e:
-        print(f"Error getting clipboard items: {e}", file=sys.stderr)
-        sys.exit(1)
-
-
 def main():
-    # Get the 3 most recent clipboard items
-    clipboard_items = get_recent_clipboard_items(3)
-    
-    if len(clipboard_items) != 3:
-        print("Error: Need 3 clipboard items (url, chapters, bookmarks)", 
-              file=sys.stderr)
+    """Main entry point for Alfred workflow"""
+    if len(sys.argv) != 2:
+        sys.stderr.write("Usage: script.py '{clipboard:2}xXx{clipboard:1}xXx{clipboard:0}'\n")
         sys.exit(1)
-    
-    # Call the parser script with clipboard items
+
     try:
-        cmd = ['python3', 'parse.py'] + clipboard_items
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        # Log input for debugging
+        sys.stderr.write(f"Input received: {repr(sys.argv[1])}\n")
         
-        if result.returncode != 0:
-            print(f"Parser error: {result.stderr}", file=sys.stderr)
+        # Split input on xXx separator
+        clipboard_items = sys.argv[1].split('xXx')
+        
+        if len(clipboard_items) != 3:
+            sys.stderr.write("Error: Need exactly 3 clipboard items separated by 'xXx'\n")
             sys.exit(1)
             
-        # Output the formatted markdown
-        print(result.stdout)
+        # Get items in correct order
+        chapters_text = clipboard_items[0].strip()  # {clipboard:2}
+        bookmarks_text = clipboard_items[1].strip() # {clipboard:1}
+        base_link = clipboard_items[2].strip()      # {clipboard:0}
         
+        # Log items for debugging
+        sys.stderr.write(f"\nChapters text: {repr(chapters_text)}\n")
+        sys.stderr.write(f"Bookmarks text: {repr(bookmarks_text)}\n")
+        sys.stderr.write(f"Base link: {repr(base_link)}\n")
+        
+        # Initialize parser
+        parser = AudibleParser(debug=True)
+        
+        # Process the data
+        chapters = parser.parse_chapters(chapters_text)
+        sys.stderr.write(f"\nParsed {len(chapters)} chapters\n")
+        
+        bookmarks = parser.parse_bookmarks(bookmarks_text, chapters)
+        sys.stderr.write(f"Parsed {len(bookmarks)} bookmarks\n")
+        
+        output = parser.format_output(bookmarks, base_link)
+        sys.stderr.write(f"Generated output length: {len(output)}\n")
+        
+        # Write output to stdout for Alfred
+        sys.stdout.write(output)
+        
+        # Initialize parser
+        parser = AudibleParser(debug=True)
+        
+        # Process the data
+        chapters = parser.parse_chapters(chapters_text)
+        bookmarks = parser.parse_bookmarks(bookmarks_text, chapters)
+        output = parser.format_output(bookmarks, base_link)
+        
+        # Print output to stdout (will be captured by Alfred)
+        sys.stdout.write(output)  # Use write instead of print to avoid extra newlines
+        
+    except json.JSONDecodeError:
+        print("Error: Invalid clipboard data format", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
-        print(f"Error running parser: {e}", file=sys.stderr)
+        print(f"Error processing clipboard items: {e}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":
