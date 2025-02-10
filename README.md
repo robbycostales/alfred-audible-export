@@ -5,7 +5,7 @@ A workflow to export Audible audiobook notes (and bookmarks) to markdown.
 The output provides chapter headers of all notes, the timestamp, a percentage value (useful for finding corresponding quote in the book), and the note itself. The takes the user to the cloud player (audible ultimately does not allow direct links to bookmark locations, despite my best efforts). 
 
 <div align="center">
-    <img src="./screenshots/martyr-output.png" alt="screenshot of output" width='100%'>
+    <img src="./screenshots/martyr-output.png" alt="screenshot of output" width='350px'>
     <p><em>Example of the markdown output format.</em></p>
 </div>
 
