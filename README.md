@@ -5,7 +5,7 @@ A workflow to export Audible audiobook notes (and bookmarks) to markdown.
 The output provides chapter headers of all notes, the timestamp, a percentage value (useful for finding corresponding quote in the book), and the note itself. The takes the user to the cloud player (audible ultimately does not allow direct links to bookmark locations, despite my best efforts). 
 
 <div align="center">
-    <img src="./screenshots/martyr-output.png" alt="screenshot of output" style="max-height: 200px; !important">
+    <img src="./screenshots/martyr-output.png" alt="screenshot of output" width='100%'>
     <p><em>Example of the markdown output format.</em></p>
 </div>
 
@@ -20,7 +20,7 @@ After finishing an Audible audiobook, perform the following steps on your Mac:
 The player should open.
 
 <div align="center">
-    <img src="./screenshots/martyr-player.png" alt="player screenshot" style="max-height: 200px; !important">
+    <img src="./screenshots/martyr-player.png" alt="player screenshot" height='250px'>
     <p><em>The Audible web player interface.</em></p>
 </div>
 
@@ -29,14 +29,14 @@ The player should open.
 **Step 3:** Copy the chapters information. In the player, just below the play button, click "Chapters". Select all text beginning with the first chapter as shown below. Copy to clipboard.
 
 <div align="center">
-    <img src="./screenshots/martyr-chapters.png" alt="chapters screenshot" style="max-height: 200px; !important">
+    <img src="./screenshots/martyr-chapters.png" alt="chapters screenshot" height='250px'>
     <p><em>Selecting chapter information from the Chapters panel.</em></p>
 </div>
 
 **Step 4:** Copy the bookmarks information. Click "close" to get back to the player, click the three dots in the top right, and select "Bookmarks". Select all text beginning with the first bookmark as shown below. Copy to clipboard.
 
 <div align="center">
-    <img src="./screenshots/martyr-notes.png" alt="bookmarks screenshot" style="max-height: 200px; !important">
+    <img src="./screenshots/martyr-notes.png" alt="bookmarks screenshot" height='250px'>
     <p><em>Selecting bookmark information from the Bookmarks panel.</em></p>
 </div>
 
