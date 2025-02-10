@@ -1,4 +1,4 @@
-# Audible Alfred Workflow
+# Audible Export (Alfred Workflow)
 
 A workflow to export Audible audiobook notes (and bookmarks) to markdown.
 
