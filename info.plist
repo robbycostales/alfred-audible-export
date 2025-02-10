@@ -62,7 +62,7 @@
 	<key>createdby</key>
 	<string>Robby Costales</string>
 	<key>description</key>
-	<string>This workflow is a hacky solution to export audible book notes</string>
+	<string>This workflow enables users to export their Audible bookmark notes to markdown.</string>
 	<key>disabled</key>
 	<false/>
 	<key>name</key>
@@ -103,25 +103,6 @@
 		<dict>
 			<key>config</key>
 			<dict>
-				<key>autopaste</key>
-				<false/>
-				<key>clipboardtext</key>
-				<string>{query}</string>
-				<key>ignoredynamicplaceholders</key>
-				<false/>
-				<key>transient</key>
-				<false/>
-			</dict>
-			<key>type</key>
-			<string>alfred.workflow.output.clipboard</string>
-			<key>uid</key>
-			<string>671F3FA9-9E36-4A56-A74A-585FBF548C1E</string>
-			<key>version</key>
-			<integer>3</integer>
-		</dict>
-		<dict>
-			<key>config</key>
-			<dict>
 				<key>concurrently</key>
 				<false/>
 				<key>escaping</key>
@@ -145,9 +126,28 @@
 		<dict>
 			<key>config</key>
 			<dict>
+				<key>autopaste</key>
+				<false/>
+				<key>clipboardtext</key>
+				<string>{query}</string>
+				<key>ignoredynamicplaceholders</key>
+				<false/>
+				<key>transient</key>
+				<true/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.output.clipboard</string>
+			<key>uid</key>
+			<string>671F3FA9-9E36-4A56-A74A-585FBF548C1E</string>
+			<key>version</key>
+			<integer>3</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
 				<key>argument</key>
-				<string>{clipboard:2}xx
-{clipboard:1}xx
+				<string>{clipboard:2}xXx
+{clipboard:1}xXx
 {clipboard:0}</string>
 				<key>passthroughargument</key>
 				<false/>
@@ -176,13 +176,7 @@
 		</dict>
 	</array>
 	<key>readme</key>
-	<string>This workflow demonstrates a few techniques to integrate the clipboard into your workflows.
-
-The easiest and most predictable way to get the clipboard or clipboard history into your workflow is to use an Arg and Var utility object, and set a variable to {clipboard} or {clipboard:x} where x is the history item number. This will fix the variable to the text at the point the workflow passes through this object.
-
-Note that while {clipboard} and {clipboard:0} both represent the latest clipboard entry, the value of these may differ. {clipboard:0} represents the latest item in Alfred's clipboard history whereas {clipboard} represents the current clipboard entry in macOS. The latter may not be compatible with Alfred's clipboard history.
-
-The clipboard history placeholders are available in most output objects, along with the Arg and Var / JSON utilities. Help subtext hints this throughout the configuration sheets.</string>
+	<string>This workflow enables users to export their Audible bookmark notes to markdown.</string>
 	<key>uidata</key>
 	<dict>
 		<key>09A51EDB-7071-4B9B-B081-4BF49022405F</key>
@@ -201,8 +195,10 @@ The clipboard history placeholders are available in most output objects, along w
 		</dict>
 		<key>671F3FA9-9E36-4A56-A74A-585FBF548C1E</key>
 		<dict>
+			<key>note</key>
+			<string>This will not "count" as an item in the clipboard (it will be marked "transient"), so you can rerun to get same results.</string>
 			<key>xpos</key>
-			<real>990</real>
+			<real>1100</real>
 			<key>ypos</key>
 			<real>240</real>
 		</dict>
@@ -215,6 +211,11 @@ The clipboard history placeholders are available in most output objects, along w
 		</dict>
 		<key>EA1ADD65-73E0-4D83-846F-4ECBF685F27B</key>
 		<dict>
+			<key>note</key>
+			<string>Copy in this order:
+1. URL
+2. Chapters
+3. Bookmarks</string>
 			<key>xpos</key>
 			<real>135</real>
 			<key>ypos</key>

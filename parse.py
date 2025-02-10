@@ -216,16 +216,21 @@ def main():
         if len(clipboard_items) != 3:
             sys.stderr.write("Error: Need exactly 3 clipboard items separated by 'xXx'\n")
             sys.exit(1)
+
+        # Items passed as input like this
+        # {clipboard:2}xXx            (1st copy: the base link)
+        # {clipboard:1}xXx            (2nd copy: the chapters)
+        # {clipboard:0}               (3rd copy: the bookmarks)
             
         # Get items in correct order
-        chapters_text = clipboard_items[0].strip()  # {clipboard:2}
-        bookmarks_text = clipboard_items[1].strip() # {clipboard:1}
-        base_link = clipboard_items[2].strip()      # {clipboard:0}
+        base_link = clipboard_items[0].strip()
+        chapters_text = clipboard_items[1].strip()    
+        bookmarks_text = clipboard_items[2].strip()
         
         # Log items for debugging
-        sys.stderr.write(f"\nChapters text: {repr(chapters_text)}\n")
-        sys.stderr.write(f"Bookmarks text: {repr(bookmarks_text)}\n")
-        sys.stderr.write(f"Base link: {repr(base_link)}\n")
+        sys.stderr.write(f"\nChapters text: {repr(chapters_text[:10])}\n")
+        sys.stderr.write(f"\n\nBookmarks text: {repr(bookmarks_text[:10])}\n")
+        sys.stderr.write(f"\n\nBase link: {repr(base_link[:10])}\n")
         
         # Initialize parser
         parser = AudibleParser(debug=True)
@@ -241,25 +246,12 @@ def main():
         sys.stderr.write(f"Generated output length: {len(output)}\n")
         
         # Write output to stdout for Alfred
-        sys.stdout.write(output)
+        print(output)
+        return 0
         
-        # Initialize parser
-        parser = AudibleParser(debug=True)
-        
-        # Process the data
-        chapters = parser.parse_chapters(chapters_text)
-        bookmarks = parser.parse_bookmarks(bookmarks_text, chapters)
-        output = parser.format_output(bookmarks, base_link)
-        
-        # Print output to stdout (will be captured by Alfred)
-        sys.stdout.write(output)  # Use write instead of print to avoid extra newlines
-        
-    except json.JSONDecodeError:
-        print("Error: Invalid clipboard data format", file=sys.stderr)
-        sys.exit(1)
     except Exception as e:
-        print(f"Error processing clipboard items: {e}", file=sys.stderr)
-        sys.exit(1)
+        sys.stderr.write(f"Error processing clipboard items: {e}\n")
+        return 1
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

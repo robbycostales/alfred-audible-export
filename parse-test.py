@@ -2,7 +2,7 @@
 
 import sys
 from pathlib import Path
-from parse import AudibleParser
+from parse import main as parse_main
 
 def read_file(filepath: str) -> str:
     """Read content from a file, stripping any trailing whitespace"""
@@ -10,33 +10,26 @@ def read_file(filepath: str) -> str:
         return f.read().strip()
 
 def main():
-    # Initialize parser with debug logging
-    parser = AudibleParser(debug=True)
-    
     try:
         # Read test files
-        chapters = read_file('t-chapters.txt')
-        bookmarks = read_file('t-bookmarks.txt')
-        link = read_file('t-link.txt')
+        chapters = read_file('test-input/t-chapters.txt')
+        bookmarks = read_file('test-input/t-bookmarks.txt')
+        link = read_file('test-input/t-link.txt')
         
-        # Process the data
-        chapters_data = parser.parse_chapters(chapters)
+        # Format the input string as expected by parse.py
+        input_str = f"{chapters}xXx{bookmarks}xXx{link}"
         
-        # Log chapter information for debugging
-        print("\nChapter Information:")
-        print("=" * 40)
-        for i, chapter in enumerate(chapters_data):
-            print(f"Chapter {i}: {chapter.name}")
-            print(f"  Start: {chapter.start_time}s")
-            print(f"  Duration: {chapter.duration_seconds}s")
-            print(f"  End: {chapter.start_time + chapter.duration_seconds}s")
-            print("-" * 40)
+        # Capture stdout to get the markdown output
+        original_stdout = sys.stdout
+        sys.stdout = output_capture = StringIO()
         
-        # Process bookmarks
-        bookmarks_data = parser.parse_bookmarks(bookmarks, chapters_data)
+        # Call parse.py's main with our formatted input
+        sys.argv = ['parse.py', input_str]
+        parse_main()
         
-        # Format output
-        output = parser.format_output(bookmarks_data, link)
+        # Restore stdout and get captured output
+        sys.stdout = original_stdout
+        output = output_capture.getvalue()
         
         # Write to file
         output_file = Path('test-output.md')
@@ -55,4 +48,5 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
+    from io import StringIO
     main()
