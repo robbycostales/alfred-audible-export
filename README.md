@@ -1,6 +1,6 @@
 # Audible Export (Alfred Workflow)
 
-A workflow to export Audible audiobook notes (and bookmarks) to markdown.
+An Alfred workflow to export Audible audiobook notes (and bookmarks) to markdown.
 
 The output provides chapter headers of all notes, the timestamp, a percentage value (useful for finding corresponding quote in the book), and the note itself. The takes the user to the cloud player (audible ultimately does not allow direct links to bookmark locations, despite my best efforts). 
 
